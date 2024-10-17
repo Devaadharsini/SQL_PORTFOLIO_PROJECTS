@@ -1,0 +1,136 @@
+use project;
+
+SELECT * FROM ONLINE;
+
+select top 5* from OPFD; 
+
+SELECT * FROM OPFD;
+
+SELECT CONVERT(INT,isFraud) AS isFraud FROM OPFD;
+
+-- MAPPING DATA
+UPDATE OPFD SET isFraud= CASE WHEN isFraud =0 THEN 'No'
+                              WHEN isFraud =1 THEN 'Yes'
+							  ELSE isFraud END;
+
+
+EXEC sp_help 'OPFD';
+
+
+ALTER TABLE OPFD
+alter column [isFraud] VARCHAR(10);
+
+-- TOP CLAUSE
+
+select top 5* from opfd;
+
+-- Transaction Analysis
+
+-- Total transaction amount by type:
+
+select type,round(sum(amount),2) as total from opfd group by type;
+
+-- Number of transactions per type:
+
+select type,count(*) as num_transactions from opfd group by type
+
+-- Average transaction amount:
+select round(avg(amount),2) as avg_t_amount from opfd ;
+
+--Distribution of transaction amounts:
+
+select amount,count(*) as freqeuncy from opfd group by amount order by freqeuncy desc;
+
+-- Fraud Analysis
+
+-- Number of fraudulent transactions:
+
+select count(*) as fraud_transactions from opfd where isFraud='Yes';
+
+-- Correlation between transaction amount and fraud:
+
+with cte2 as (
+select amount,count(isFraud) as FT from opfd where isFraud='Yes' group by amount)
+select round((avg(amount*FT) - (avg(amount)*avg(FT)))/(STDEVP(amount) * STDEVP(FT)),2) as correlation from cte2;
+
+
+--Percentage of fraudulent transactions:
+
+SELECT 
+    COUNT(*) AS total_transactions,
+    COUNT(CASE WHEN isFraud = 'Yes' THEN 'Yes' END) AS fraudulent_transactions,
+    (COUNT(CASE WHEN isFraud = 'Yes' THEN 'Yes' END) / COUNT(*)) * 100 AS fraud_percentage
+FROM opfd;
+
+
+with FP as (
+select
+   cast(count(*)  as decimal)as total_transactions ,
+   COUNT(CASE WHEN isFraud = 'Yes' THEN 'Yes' END) AS fraudulent_transactions from opfd  )
+    select  total_transactions,fraudulent_transactions,
+	round(cast((fraudulent_transactions / total_transactions) * 100 as varchar) ,4) AS fraud_percentage
+FROM FP ;
+----------------------------------------------
+select 40/5001*100 ;
+SELECT CAST(40 AS DECIMAL) / 5001 * 100;
+----------------------------------------------------
+
+-- Fraudulent transactions by type: 
+
+SELECT type,count(*) as Fraudulent_transactions from 
+opfd where isFraud='Yes'  group by type;
+
+--Account Analysis
+
+--Top 10 accounts with the highest transaction volume: 
+
+select top 10 nameOrig, count(*) as transactions from opfd 
+group by nameOrig order by transactions desc;
+
+-- 2.	Accounts with the highest total transaction amounts: 
+
+select top 10 nameOrig , sum(amount) as tot_tranasction_amount from opfd group by nameOrig order by tot_tranasction_amount desc;
+
+select top 10 nameOrig , amount from opfd order by amount desc;
+
+--count of Accounts involved in fraudulent transactions:
+select  distinct count(nameOrig) as Sender,
+count(nameDest) as Recipient from opfd where isFraud='Yes';
+
+--Temporal Analysis
+--Trend of fraudulent transactions over time:
+
+select step as Hour,count(*) as Transactions from opfd where 
+isFraud='Yes' group by step ;
+
+-- Transaction Patterns
+--Hourly transaction volume:
+
+select step as Hour,count(*) as transaction_volume 
+from opfd group by step order by step;
+
+--Average transaction amount by type:
+
+select type,round(avg(amount),2)  as avg_t_amount from opfd group by type;
+
+--Anomaly Detection
+
+--Transactions with unusually large amounts:
+
+select * from opfd where amount > (select avg(amount) * 3 from opfd) ;
+
+=--Top 10 Transactions by Amount with Ranking
+
+select top 10 nameOrig,amount,nameDest,
+rank() over (order by amount desc) as rank from opfd order by amount desc ;
+
+--- Detecting Outliers in Fraudulent Payments
+
+select * from opfd where isFraud='Yes' and amount >
+(select avg(amount) * 3 from opfd) ;
+
+--Transactions with inconsistent balances:
+
+select * from opfd where newbalanceOrig <>oldbalanceOrg + amount or newbalanceDest <> oldbalanceDest - amount;
+
+select * from opfd;
